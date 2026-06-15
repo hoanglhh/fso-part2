@@ -1,39 +1,88 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import axios, { create } from 'axios'
 import PersonForm from './Components/PersonForm'
 import Persons from './Components/Persons'
 import Filter from './Components/Filter'
+import personService from './services/persons'
+import Notification from './Components/Notification'
 
 const App = () => {
-  const [persons, setPersons] = useState([
-    { name: 'Arto Hellas', number: '040-123456', id: 'Arto Hellas'}
-  ]) 
+  const [persons, setPersons] = useState([]) 
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [filter, setFilter] = useState('')
+  const [notificationMessage, setNotificationMessage] = useState('')
 
-  const addName = (event) => {
+  useEffect(() => {
+    personService
+      .getAll()
+      .then(initialPersons => {
+        setPersons(initialPersons)
+      })
+  }, [])
+
+const addName = (event) => {
     event.preventDefault()
-    
-    if (persons.filter(person => person.name === newName).length > 0) {
-      alert(`${newName} is already added to phonebook`)
-      return
+
+    const existingPerson = persons.find(person => person.name === newName)
+
+    if (existingPerson) {
+      if (window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)) {
+        const updatedPerson = {
+          ...existingPerson,
+          number: newNumber
+        }
+
+        personService
+          .update(existingPerson.id, updatedPerson)
+          .then(returnedPerson => {
+            setPersons(persons.map(person =>
+              person.id === existingPerson.id ? returnedPerson : person
+            ))
+            setNewName('')
+            setNewNumber('')
+            setNotificationMessage(`Added ${existingPerson.name}`)
+            setTimeout(() => {
+          setNotificationMessage(null)
+        }, 5000)
+          })
+        .catch(notification =>{
+          setNotificationMessage(`Information of ${existingPerson.name} has already been removed from server`)
+          setTimeout(() => {
+            setNotificationMessage(null)
+          }, 5000)
+      })
+      }
+      return 
     }
 
     const personObject = {
       name: newName,
       number: newNumber,
-      id: newName
     }
 
-    setPersons(persons.concat(personObject))
-    setNewName('')
-    setNewNumber('')
+    personService
+      .create(personObject)
+      .then(returnedPerson => {
+        setPersons(persons.concat(returnedPerson))
+        setNewName('')
+        setNewNumber('')
+        setNotificationMessage(`Added ${personObject.name}`)
+        setTimeout(() => {
+          setNotificationMessage(null)
+        }, 5000)
+      })
+      .catch(notification =>{
+        setNotificationMessage(`Information of ${personObject.name} has already been removed from server`)
+        setTimeout(() => {
+          setNotificationMessage(null)
+        }, 5000)
+      })
   }
   
   const handleNameChange = (event) => {
     setNewName(event.target.value)
   }
-
 
   const handleNumberChange = (event) => {
     setNewNumber(event.target.value)
@@ -43,12 +92,23 @@ const App = () => {
     setFilter(event.target.value)
   }
 
-  const personsToSHow = persons.filter(person => 
+  const personsToShow = persons.filter(person => 
     person.name.toLowerCase().includes(filter.toLowerCase()))
+
+  const handleRemovePerson = (name, id) => {
+    if (window.confirm(`Delete ${name}`)) {
+      personService
+        .remove(id)
+        .then(() => {
+          setPersons(persons.filter(person => person.id != id))
+        })
+    }
+  }
 
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={notificationMessage} />
       <Filter filter={filter}
       handleFilter={handleFilter}/>
       <h2>add a new</h2>
@@ -59,7 +119,7 @@ const App = () => {
       addName={addName}
       />
       <h2>Numbers</h2>
-      <Persons personsToSHow={personsToSHow}/>
+      <Persons personsToShow={personsToShow} handleRemovePerson={handleRemovePerson}/>
     </div>
   )
 }

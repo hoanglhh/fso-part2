@@ -2,7 +2,7 @@ const Filter = ({filter, handleFilter}) => {
     return (
     <form>
         <div>
-          filer shown with <input 
+          filter shown with <input 
           value={filter}
           onChange={handleFilter}/>
         </div>
