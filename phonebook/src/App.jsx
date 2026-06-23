@@ -46,11 +46,18 @@ const addName = (event) => {
           setNotificationMessage(null)
         }, 5000)
           })
-        .catch(notification =>{
-          setNotificationMessage(`Information of ${existingPerson.name} has already been removed from server`)
-          setTimeout(() => {
-            setNotificationMessage(null)
-          }, 5000)
+          .catch(error => {
+            const backendErrorMessage = error.response.data.error
+
+            if (error.response && error.response.status === 400) {
+              setNotificationMessage(backendErrorMessage)
+            } else {
+              setNotificationMessage(`Information of ${personObject.name} has already been removed from server`)
+            }
+
+            setTimeout(() => {
+              setNotificationMessage(null)
+            }, 5000)
       })
       }
       return 
@@ -72,12 +79,19 @@ const addName = (event) => {
           setNotificationMessage(null)
         }, 5000)
       })
-      .catch(notification =>{
-        setNotificationMessage(`Information of ${personObject.name} has already been removed from server`)
+      .catch(error => {
+        const backendErrorMessage = error.response.data.error
+
+        if (error.response && error.response.status === 400) {
+          setNotificationMessage(backendErrorMessage)
+        } else {
+          setNotificationMessage(`Information of ${personObject.name} has already been removed from server`)
+        }
+
         setTimeout(() => {
           setNotificationMessage(null)
         }, 5000)
-      })
+  })
   }
   
   const handleNameChange = (event) => {
