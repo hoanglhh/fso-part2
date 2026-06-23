@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import axios, { create } from 'axios'
 import PersonForm from './Components/PersonForm'
 import Persons from './Components/Persons'
 import Filter from './Components/Filter'
@@ -11,62 +10,43 @@ const App = () => {
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [filter, setFilter] = useState('')
-  const [notificationMessage, setNotificationMessage] = useState('')
+  
+  const [notificationMessage, setNotificationMessage] = useState({ message: null, isError: false })
 
   useEffect(() => {
-    personService
-      .getAll()
-      .then(initialPersons => {
-        setPersons(initialPersons)
-      })
+    personService.getAll().then(initialPersons => setPersons(initialPersons))
   }, [])
 
-const addName = (event) => {
+  const addName = (event) => {
     event.preventDefault()
-
     const existingPerson = persons.find(person => person.name === newName)
 
     if (existingPerson) {
       if (window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)) {
-        const updatedPerson = {
-          ...existingPerson,
-          number: newNumber
-        }
+        const updatedPerson = { ...existingPerson, number: newNumber }
 
         personService
           .update(existingPerson.id, updatedPerson)
           .then(returnedPerson => {
-            setPersons(persons.map(person =>
-              person.id === existingPerson.id ? returnedPerson : person
-            ))
+            setPersons(persons.map(p => p.id === existingPerson.id ? returnedPerson : p))
             setNewName('')
             setNewNumber('')
-            setNotificationMessage(`Added ${existingPerson.name}`)
-            setTimeout(() => {
-          setNotificationMessage(null)
-        }, 5000)
+            setNotificationMessage({ message: `Updated ${existingPerson.name}`, isError: false })
+            setTimeout(() => setNotificationMessage({ message: null, isError: false }), 5000)
           })
           .catch(error => {
-            const backendErrorMessage = error.response.data.error
-
             if (error.response && error.response.status === 400) {
-              setNotificationMessage(backendErrorMessage)
+              setNotificationMessage({ message: error.response.data.error, isError: true })
             } else {
-              setNotificationMessage(`Information of ${personObject.name} has already been removed from server`)
+              setNotificationMessage({ message: `Information of ${existingPerson.name} has already been removed from server`, isError: true })
             }
-
-            setTimeout(() => {
-              setNotificationMessage(null)
-            }, 5000)
-      })
+            setTimeout(() => setNotificationMessage({ message: null, isError: false }), 5000)
+          })
       }
       return 
     }
 
-    const personObject = {
-      name: newName,
-      number: newNumber,
-    }
+    const personObject = { name: newName, number: newNumber }
 
     personService
       .create(personObject)
@@ -74,24 +54,17 @@ const addName = (event) => {
         setPersons(persons.concat(returnedPerson))
         setNewName('')
         setNewNumber('')
-        setNotificationMessage(`Added ${personObject.name}`)
-        setTimeout(() => {
-          setNotificationMessage(null)
-        }, 5000)
+        setNotificationMessage({ message: `Added ${personObject.name}`, isError: false })
+        setTimeout(() => setNotificationMessage({ message: null, isError: false }), 5000)
       })
       .catch(error => {
-        const backendErrorMessage = error.response.data.error
-
         if (error.response && error.response.status === 400) {
-          setNotificationMessage(backendErrorMessage)
+          setNotificationMessage({ message: error.response.data.error, isError: true })
         } else {
-          setNotificationMessage(`Information of ${personObject.name} has already been removed from server`)
+          setNotificationMessage({ message: `Failed to add ${personObject.name}`, isError: true })
         }
-
-        setTimeout(() => {
-          setNotificationMessage(null)
-        }, 5000)
-  })
+        setTimeout(() => setNotificationMessage({ message: null, isError: false }), 5000)
+      })
   }
   
   const handleNameChange = (event) => {
@@ -122,7 +95,7 @@ const addName = (event) => {
   return (
     <div>
       <h2>Phonebook</h2>
-      <Notification message={notificationMessage} />
+      <Notification notification={notificationMessage} />
       <Filter filter={filter}
       handleFilter={handleFilter}/>
       <h2>add a new</h2>
